@@ -1,0 +1,26 @@
+<!--
+<!DOCTYPE html>
+<html lang="en">  Defines the language of the document as English
+<head>
+    <title>Tasks</title>   Sets the title of the webpage, which appears in the browser tab 
+</head>
+<body>-->
+
+{% extends "tasks/layout.html" %}  <!-- Tells Django to use "tasks/layout.html" as the base template -->
+
+{% block body  %}  <!-- Starts a block named "body" where content will be inserted into the base template -->
+    <h1>add task!</h1>  <!-- Displays a level-1 heading with the text "add task!" -->
+
+    <form action="{% url 'tasks:add' %}" method="post">  <!-- Creates a form that posts data to the URL of the 'tasks:add' view -->
+        {% csrf_token %}  <!-- Inserts a CSRF token to protect against Cross-Site Request Forgery attacks -->
+        {{ form }}  <!-- Renders the form fields and any associated form errors -->
+        <!--<input type="text" name="task">-->  <!-- Old input field for adding a task, commented out -->
+
+        <input type="submit">  <!-- Creates a submit button to send the form data -->
+    </form>
+
+    <a href="{% url 'tasks:index' %}">Indeex</a>  <!-- Creates a link to the "tasks:index" view, with a typo in "Index" -->
+{% endblock %}  <!-- Ends the "body" block -->
+
+<!--</body>
+</html> -->

@@ -1,0 +1,15 @@
+This exercise involves creating a simple website that mimics the core functionalities of Google Search, Image Search, and Advanced Search. The site consists of three HTML pages: one for standard search, one for image search, and one for advanced search, with links in the upper-right corner for navigation between them.
+
+The main search page, index.html, includes a centered search bar with rounded corners and a search button placed directly below it. When users input a query and click the "Google Search" button, they are redirected to the actual Google search results page. An "I’m Feeling Lucky" button is also included, which sends users directly to the first search result, bypassing the usual results page.
+
+On the image search page, users enter their query, and the form sends them to Google’s image search results. This page includes a hidden field that ensures the search is specifically for images, even though the user doesn’t interact with this field directly.
+
+The advanced search page provides four input fields: one for all words, one for an exact phrase, one for any words, and one for excluding words. These fields are stacked vertically to match Google's layout, and a blue "Advanced Search" button triggers the search, directing users to filtered search results.
+
+The website’s design uses CSS to replicate Google’s simple, clean aesthetic, with rounded buttons and input fields, centered elements, and smooth navigation.
+
+
+
+
+
+

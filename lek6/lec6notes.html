@@ -1,0 +1,678 @@
+<!-- single page application
+Ολα αυτά γίνονται για να μπορέσω να φορτώσω και να ανανεώσω μόνο μέρη της σελίδας χωρις να ειναι ανάγκη να το κάνω σε ολόκληρη
+στο αρχικό μου html κάπου έχω ένα div με Id που είναι κενό
+-->
+
+<style>
+    div {
+        display: none;
+    }
+</style>
+
+<div id="page1">
+    <h1>This is page 1</h1>
+</div>
+<div id="page2">
+    <h1>This is page 2</h1>
+</div>
+<div id="page3">
+    <h1>This is page 3</h1>
+</div>
+
+<button data-section="page1">Page 1</button>
+<button data-section="page2">Page 2</button>
+<button data-section="page3">Page 3</button>
+<div id="content"></div> <!-- αυτό υαπάρχει εδω για να φορτώνω το .innerHTML-->
+
+<script>
+// Shows one page and hides the other two
+function showPage(page) {
+    // Hide all of the divs:
+    document.querySelectorAll('div').forEach(div => {
+        div.style.display = 'none';
+    });
+    // Show the div provided in the argument
+    document.querySelector(`#${page}`).style.display = 'block';
+}
+// Wait for page to loaded:
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all buttons
+    document.querySelectorAll('button').forEach(button => {
+        // When a button is clicked, switch to that page
+        button.onclick = function() {
+            showPage(this.dataset.page); // προσοχή στο this. ενεργοποιεί το κουμπί που δεχτικε το κλικ γιατι είμαι μέσα σε ε΄να event listener με το .onclick
+        }
+    })
+});
+</script>
+
+<!--
+αυτό ειναι το django πέρα απο το index έχω και ένα παθ μου φορτώνει μόνο μέρος της σελίδας
+urlpatterns = [
+    path("", views.index, name="index"),
+    path("sections/<int:num>", views.section, name="section")
+]
+
+
+στο views
+def section(request, num):
+    if 1 <= num <= 3:
+        return HttpResponse(texts[num - 1])
+    else:
+        raise Http404("No such section")
+
+sto index.html -->
+<script>
+function showSection(section) {
+    // Find section text from server
+    fetch(`/sections/${section}`)
+    .then(response => response.text())
+    .then(text => {
+        // Log text and display on page
+        console.log(text);
+        document.querySelector('#content').innerHTML = text;
+    });
+}
+</script>
+
+<script>
+history.pushState({section: section}, "", `section${section}`); //.popstate αν πατήσω το "επιστροφή" και παω μια σελίδα πίσω
+showSection(section);
+
+window.onpopstate = function(event) { //
+    console.log(event.state.section);
+    showSection(event.state.section);
+}
+</script>
+<!--SCROLL-->
+
+window.scrollY
+document.body.offsetheight
+window.innerheight
+
+scrollY + window.innerheight
+<script>
+
+    // Event listener for scrolling
+    window.onscroll = () => {
+        // Check if we're at the bottom
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight) { // ετσι υπολογίζω αν εφτασα στο τελος της σελίδας
+            // Change color to green
+            document.querySelector('body').style.background = 'green';
+        } else {
+            // Change color to white
+            document.querySelector('body').style.background = 'white';
+        }
+    };
+</script>
+
+<!--Infinite Scroll-->
+<script>
+
+// Start with first post
+let counter = 1;
+
+// Load posts 20 at a time
+const quantity = 20;
+
+// When DOM loads, render the first 20 posts
+document.addEventListener('DOMContentLoaded', load);
+
+// If scrolled to bottom, load the next 20 posts
+window.onscroll = () => {
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+        load(); //αν το βάλω να τρέχει αυτόματα κάθε φορά που φτανει στο τελος έχω infinite scroll
+    }
+};
+    // αυτό μου φορτώνει 20 σελίδες την φορά που τρέχω την λοαντ σαν σελίδα ησοπ δες πανω
+// Load next set of posts
+function load() {
+
+    // Set start and end post numbers, and update counter
+    const start = counter;
+    const end = start + quantity - 1;
+    counter = end + 1;
+
+    // Get new posts and add posts
+    fetch(`/posts?start=${start}&end=${end}`)
+    .then(response => response.json())
+    .then(data => {
+        data.posts.forEach(add_post);
+    })
+};
+</script>
+
+
+<!-- GPT EXAMPLE of togle div-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Page Application</title>
+    <style>
+        /* Initially hide all divs */
+        div {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Section Content -->
+    <div id="page1">
+        <h1>This is page 1</h1>
+    </div>
+    <div id="page2">
+        <h1>This is page 2</h1>
+    </div>
+    <div id="page3">
+        <h1>This is page 3</h1>
+    </div>
+
+    <!-- Buttons to Toggle Sections -->
+    <button data-section="page1">Page 1</button>
+    <button data-section="page2">Page 2</button>
+    <button data-section="page3">Page 3</button>
+
+    <!-- Content placeholder for dynamic content -->
+    <div id="content"></div>
+
+    <script>
+        // Function to show one section and hide others
+        function showPage(pageId) {
+            // Hide all div elements
+            document.querySelectorAll('div').forEach(div => {
+                div.style.display = 'none';
+            });
+            // Show the selected page
+            document.querySelector(`#${pageId}`).style.display = 'block';
+        }
+
+        // Event listener for buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('button').forEach(button => {
+                button.onclick = function() {
+                    // Show the corresponding page
+                    showPage(this.dataset.section);
+                }
+            });
+        });
+
+        // Function to fetch content dynamically from server (Django example)
+        function showSection(section) {
+            fetch(`/sections/${section}`)
+                .then(response => response.text())
+                .then(text => {
+                    document.querySelector('#content').innerHTML = text;
+                });
+        }
+
+        // Manage browser history using the History API
+        function updateHistory(section) {
+            history.pushState({ section: section }, "", `section${section}`);
+            showSection(section);
+        }
+
+        // Handle back/forward navigation
+        window.onpopstate = function(event) {
+            if (event.state && event.state.section) {
+                showSection(event.state.section);
+            }
+        };
+    </script>
+
+</body>
+</html>
+
+<!-- animation -->
+<style>
+@keyframes grow {
+    from {
+        font-size: 20px;
+    }
+    to {
+        font-size: 100px;
+    }
+}
+
+h1 {
+    animation-name: grow;
+    animation-duration: 2s;
+    animation-fill-mode: forwards;
+}
+</style>
+<!--
+<script>
+    h1.style.animationPlayState = 'paused';
+    const element = event.target;
+    element.parentElement.remove()
+    element.parentElement.style.animationPlayState = 'running';
+    element.parentElement.addEventListener('animationend', () => {
+    element.parentElement.remove();
+</script>
+-->
+
+<!-- react -->
+<script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+<title>Hello</title>
+
+<div id="app"></div>
+<script type="text/babel">
+    function App() {
+        const x = 1;
+        const y = 2;
+        return (
+            <div>{ x + y }</div>
+        );
+    }
+    ReactDOM.render(<App />, document.querySelector("#app")); // το δευτερο argument μου λέει που να γίνει αυτο
+
+</script>
+
+<script>
+    function Hello(props) {
+    return (
+        <h1>Hello</h1>
+    );
+}
+function App() {
+    return (
+        <div>
+            <Hello /> // render a hello component
+            <Hello />
+            <Hello />
+        </div>
+    );
+}
+//
+function Hello(props) { // Με το Props  το  component μου μπορει να πάρει παραμέτρους και να αλλάζει
+    return (
+        <h1>Hello, {props.name}</h1>
+    );
+}
+function App() {
+    return (
+        <div>
+            <Hello name="Harry" />
+            <Hello name="Ron" />
+            <Hello name="Hermione" />
+        </div>
+    );
+}
+function Hello(props) {
+    return (
+        <h1>Hello, {props.name}!</h1>
+    );
+}
+</script>
+
+saves
+εδω το κουμπι εντιτ μου κάνει ποπαπ kai moy δειχχνει τον τιτλο kai το σωμα του ποστ
+
+
+
+/*
+my psuedocode is
+get button in constant
+get post-box in constant
+get editpost in constant
+add .onclick to button
+then toggle the view of post-box
+retrieve post-box info
+populate editpost
+toggle the view of editpost
+*/
+
+
+/* ok so now we have created a constant that catches all the buttons
+a constant tha cachest the container (the placeholder for the edit form
+a constant for for the edit form
+next we set an alarm for every button to see which one will be clicked and if it happens we prevent its normal behavior (submit)
+*/
+
+function initEditButton() {
+    const editButtons = document.querySelectorAll('[id^="editbutton-"]');
+    const editContainer = document.getElementById('editcontainer');
+    const editPost = document.getElementById('editpost');
+
+    editButtons.forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+
+
+            /*next i want to take the innerHtml from my template aka editPost and give it to the editContainer
+            */
+            editContainer.innerHTML = ''; // Clear previous
+            editContainer.innerHTML = editPost.innerHTML;
+
+            /*
+            now the next steps
+            1. retrieve the title and the content of the post (that the button wa pressed) and save them in constants
+            2. populate the new form with them
+
+            lets go to 1.
+            lets keep in mind that in every post while looping we added an id like:
+            id="posttitle-{{ post.id }}"
+            id="postcontent-{{ post.id }}"
+            and this are shown in box named
+            post-box-{{ post.id }}
+            but first we need to retrieve the post id
+            */
+
+            /*
+            εδω βαζω ένα απλο παραδειγμα του τι κάνει το .getAttribute:
+            <button id="myButton" data-info="123">Click me</button>
+            const button = document.getElementById('myButton');
+            const info = button.getAttribute('data-info');
+            console.log(info); // This will output: 123
+            απθηκευω εναλακτικές κρυφές πληροφορίες. Στην περιπτωση μου το id του Post
+
+            */
+
+
+            const postId = button.getAttribute('data-post-id');
+
+            const initialTitle = document.getElementById(`posttitle-${postId}`);
+            //debuging μου τύπωνε μόνο τον τιτλο και οχι το σωμα του ποστ. Επειεδη το linebreak μου φτιάχενει παραγράφους με πολλαπλά <p> πρεπει να προσέξω να μην πάρω μόνο το πρωτο. για αυτό η αλλαγή.
+            //const initialContent = document.getElementById(`postcontent-${postId}`);
+
+
+            // παιρνω και όλα τα child <p>
+            const parsedInitialContent = document.querySelectorAll(`#postcontent-${postId} ~ p`);
+
+            // debuging2
+            console.log(parsedInitialContent);
+
+            let contentText  = '';
+            parsedInitialContent.forEach(function(p) { // δεν μου αρεσε αλλα θα μπορούσε p => // το .forEach πρακτικα λειτουργει σαν for loop
+                //debuging2
+                console.log(p.innerText);
+                contentText  += p.innerText + '\n';
+                //debuging2
+                console.log('Final Content Text:', contentText);
+            });
+            //Now, to get the actual text inside those elements
+            const titleText = initialTitle.innerText;
+            //debuging. επειδη λόγο του debuging το ευτιαξα αλλιώς παρπανω το σβήνω απο εδω
+            //const contentText = initialContent.innerText;
+
+            // debug3
+            console.log(parsedInitialContent); // Check if this contains the expected elements
+            console.log(contentText); // Check if this contains the expected text
+
+            //step 2  populate the new form, we have to titleText and contentText. in html the αντιστοιχα ονοματα sto editpost είναι id="newtitle" kai id="newcontent"
+
+            document.querySelector('#newtitle').value = titleText;
+            document.querySelector('#newcontent').value = contentText;
+
+
+            if (editContainer.style.display === 'none' || editContainer.style.display === '') {
+                editContainer.style.display = 'block';
+            } else {
+                editContainer.style.display = 'none';
+            }
+        });
+    });
+}
+
+
+mexri edo exo fftasei sto deytero koympi
+/*
+there is a button called submit edit
+we will create a new js fuction that is runned when clicked
+here is my initial psuedocode
+
+1. add the button to an const:
+<button type="submit" id="submiteditbutton" class="submit-btn" data-post-id="{{ post.id }}">Submit Edit</button>
+
+2. add eventlistener on button for click
+3. prevent from submiting event
+4. get post id
+5. retreave content and title and save them to const. id="newtitle" id="newcontent"
+6. create a fetch put to send to jango
+7. optimise jango for updating the models
+8. update the parts to be refreshed without refreshing the page
+*/
+
+/*
+function submitEditForm() {
+    //1. add the button to an const: <button type="submit" id="submiteditbutton" class="submit-btn" data-post-id="{{ post.id }}">Submit Edit</button>
+    const submitEditButton = document.querySelector('#submiteditbutton');
+    console.log("submitEditForm function called!");
+
+    //2. add eventlistener on button for click
+    submitEditButton.addEventListener('click', function(event) {
+
+        //3. prevent from submiting event
+        event.preventDefault();
+        console.log("Submit Edit button clicked!");
+
+        //4. get post id
+        const postId = submitEditButton.getAttribute('data-post-id');
+        console.log(`Post ID: ${postId}`);
+
+        //5. create a fetch put to send to jango προσοχη στο .value
+        const newtitle = document.querySelector('#newtitle').value;
+        const newcontent = document.querySelector('#newcontent').value;
+        console.log(`New Title: ${newtitle}`);
+        console.log(`New Content: ${newcontent}`);
+
+        //6. create a fetch put to send to jango
+        fetch(`/index/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                post_id: postId,
+                title: newtitle,
+                content: newcontent
+            })
+        })
+        // added for debug
+        .then(response => {
+            console.log(response)
+            if (response.ok) {
+                console.log('Post updated successfully!');
+                location.reload(); // Refresh the page to see the changes
+            } else {
+                console.error('Error updating post:', response.statusText);
+            }
+        })
+        .catch(error => {
+            console.error("Fetch error:", error);
+        });
+    });
+    console.log("Event listener added to submit button.");
+}
+*/
+
+
+AYTO DOYLEYEI!!!!!
+
+function initEditButton() {
+    const editButtons = document.querySelectorAll('[id^="editbutton-"]');
+    const editContainer = document.getElementById('editcontainer');
+    const editPost = document.getElementById('editpost');
+
+    editButtons.forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+
+
+            /*next i want to take the innerHtml from my template aka editPost and give it to the editContainer
+            */
+            editContainer.innerHTML = ''; // Clear previous
+            editContainer.innerHTML = editPost.innerHTML;
+
+            /*
+            now the next steps
+            1. retrieve the title and the content of the post (that the button wa pressed) and save them in constants
+            2. populate the new form with them
+
+            lets go to 1.
+            lets keep in mind that in every post while looping we added an id like:
+            id="posttitle-{{ post.id }}"
+            id="postcontent-{{ post.id }}"
+            and this are shown in box named
+            post-box-{{ post.id }}
+            but first we need to retrieve the post id
+            */
+
+            /*
+            εδω βαζω ένα απλο παραδειγμα του τι κάνει το .getAttribute:
+            <button id="myButton" data-info="123">Click me</button>
+            const button = document.getElementById('myButton');
+            const info = button.getAttribute('data-info');
+            console.log(info); // This will output: 123
+            απθηκευω εναλακτικές κρυφές πληροφορίες. Στην περιπτωση μου το id του Post
+
+            */
+
+
+            const postId = button.getAttribute('data-post-id');
+
+            const initialTitle = document.getElementById(`posttitle-${postId}`);
+            //debuging μου τύπωνε μόνο τον τιτλο και οχι το σωμα του ποστ. Επειεδη το linebreak μου φτιάχενει παραγράφους με πολλαπλά <p> πρεπει να προσέξω να μην πάρω μόνο το πρωτο. για αυτό η αλλαγή.
+            //const initialContent = document.getElementById(`postcontent-${postId}`);
+
+
+            // παιρνω και όλα τα child <p>
+            const parsedInitialContent = document.querySelectorAll(`#postcontent-${postId} ~ p`);
+
+
+            let contentText  = '';
+            parsedInitialContent.forEach(function(p) { // δεν μου αρεσε αλλα θα μπορούσε p => // το .forEach πρακτικα λειτουργει σαν for loop
+
+                contentText  += p.innerText + '\n';
+            });
+            //Now, to get the actual text inside those elements
+            const titleText = initialTitle.innerText;
+            //debuging. επειδη λόγο του debuging το ευτιαξα αλλιώς παρπανω το σβήνω απο εδω
+            //const contentText = initialContent.innerText;
+
+            //step 2  populate the new form, we have to titleText and contentText. in html the αντιστοιχα ονοματα sto editpost είναι id="newtitle" kai id="newcontent"
+
+            document.querySelector('#newtitle').value = titleText;
+            document.querySelector('#newcontent').value = contentText;
+
+
+            if (editContainer.style.display === 'none' || editContainer.style.display === '') {
+                editContainer.style.display = 'block';
+                // αν εβαζα απλως autofocus στο title δεν θα δουλευε γιατι η σελιδα δεν κανει ριφρεσ καθε φορα που πατιέτε το κουμπι
+                document.querySelector('#newtitle').focus();
+            } else {
+                editContainer.style.display = 'none';
+            }
+
+            // **Reattach the event listener to the newly populated submit button**
+            document.querySelector('#submiteditbutton').addEventListener('click', function(event) {
+                event.preventDefault();
+                console.log("Submit Edit button clicked!");
+
+                // Get new title and content
+                const newtitle = document.querySelector('#newtitle').value;
+                const newcontent = document.querySelector('#newcontent').value;
+
+                // Send PUT request to update post (your existing fetch code here)
+                fetch(`/index/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        title: newtitle,
+                        content: newcontent
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Post updated successfully!');
+                        location.reload(); // Refresh the page to see the changes
+                    } else {
+                        console.error('Error updating post:', response.statusText);
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error);
+                });
+            });
+
+        });
+    });
+}
+---------------
+there is a button called submit edit
+we will create a new js fuction that is runned when clicked
+here is my initial psuedocode
+
+1. add the button to an const:
+<button type="submit" id="submiteditbutton" class="submit-btn" data-post-id="{{ post.id }}">Submit Edit</button>
+
+2. add eventlistener on button for click
+3. prevent from submiting event
+4. get post id
+5. retreave content and title and save them to const. id="newtitle" id="newcontent"
+6. create a fetch put to send to jango
+7. optimise jango for updating the models
+8. update the parts to be refreshed without refreshing the page
+*/
+
+
+function submitEditForm() {
+    //1. add the button to an const: <button type="submit" id="submiteditbutton" class="submit-btn" data-post-id="{{ post.id }}">Submit Edit</button>
+    const submitEditButton = document.querySelector('#submiteditbutton');
+    console.log("submitEditForm function called!");
+
+    //2. add eventlistener on button for click
+    submitEditButton.addEventListener('click', function(event) {
+
+        //3. prevent from submiting event
+        event.preventDefault();
+        console.log("Submit Edit button clicked!");
+
+        //4. get post id
+        const postId = submitEditButton.getAttribute('data-post-id');
+        console.log(`Post ID: ${postId}`);
+
+        //5. create a fetch put to send to jango προσοχη στο .value
+        const newtitle = document.querySelector('#newtitle').value;
+        const newcontent = document.querySelector('#newcontent').value;
+        console.log(`New Title: ${newtitle}`);
+        console.log(`New Content: ${newcontent}`);
+
+        //6. create a fetch put to send to jango
+        fetch(`/index/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                post_id: postId,
+                title: newtitle,
+                content: newcontent
+            })
+        })
+        // added for debug
+        .then(response => {
+            console.log(response)
+            if (response.ok) {
+                console.log('Post updated successfully!');
+                location.reload(); // Refresh the page to see the changes
+            } else {
+                console.error('Error updating post:', response.statusText);
+            }
+        })
+        .catch(error => {
+            console.error("Fetch error:", error);
+        });
+    });
+    console.log("Event listener added to submit button.");
+}

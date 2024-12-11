@@ -1,0 +1,19 @@
+In this project, we’ve created a Wiki Encyclopedia using Django. The goal was to build a platform where users can view, search, create, and edit encyclopedia entries, all written in Markdown and converted to HTML.
+
+Let’s start with the index page. Here, we list all available entries in the encyclopedia. By clicking on any entry, the user is taken directly to the page for that entry. These pages display the content stored in Markdown, which we convert to HTML using the markdown2 library.
+
+Next, we have the search functionality. The user can enter a query into the search bar. If the query exactly matches an entry, they’re redirected to that entry’s page. If there’s a partial match, they’re shown a list of entries that contain the search term.
+
+We also implemented a Create New Page feature. Users can create new encyclopedia entries by providing a title and content in Markdown format. If the entry already exists, they receive an error message. Otherwise, the entry is saved and becomes immediately accessible.
+
+Finally, users can also edit existing entries. Each entry page has an edit button that allows users to update the content. The existing content is pre-populated in the form, so users can make changes and save them.
+
+That’s a quick overview of the Wiki Encyclopedia project, where we’ve integrated Markdown, Django views, and a fully functional CRUD system for managing content.
+
+In addition to these core features, we’ve also included a Random Page button. This allows users to discover a random entry from the encyclopedia, which adds an element of exploration and fun. With just one click, you’re taken to a different entry each time.
+
+Another important aspect of this project is how we handle errors. If a user tries to access a page that doesn’t exist, or if they attempt to create an entry with a duplicate title, they’re presented with a custom error page, providing feedback and guidance on what went wrong.
+
+Behind the scenes, the logic is handled through Django views and URL routing, making sure each feature works seamlessly. We’ve also used Django’s template system to ensure consistency across the pages, with a shared layout that includes the navigation bar and search function on every page.
+
+Altogether, this project demonstrates how we can combine Django, Markdown, and custom views to create a dynamic, user-friendly encyclopedia platform, where users can contribute, edit, and explore knowledge effortlessly.

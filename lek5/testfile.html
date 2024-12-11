@@ -1,0 +1,66 @@
+<!-- Here's a simple example of a single HTML page that toggles between two views using JavaScript. One view contains a textarea where you can input text, and the other view displays the content from the textarea when you click a button. -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle Views Example</title>
+    <style>
+        #view1, #view2 {
+            display: none;
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #view1 {
+            display: block; /* Show the first view by default */
+        }
+    </style>
+</head>
+<body>
+    <div id="view1">
+        <h2>Input View</h2>
+        <textarea id="inputText" rows="5" cols="30" placeholder="Type something..."></textarea><br>
+        <button id="sendButton">Send to View 2</button>
+        <button id="toggleButton">Toggle to View 2</button>
+    </div>
+
+    <div id="view2">
+        <h2>Display View</h2>
+        <p id="displayText"></p>
+        <button id="toggleButtonBack">Back to Input View</button>
+    </div>
+
+    <script>
+        // Get elements
+        const view1 = document.getElementById('view1');
+        const view2 = document.getElementById('view2');
+        const inputText = document.getElementById('inputText');
+        const displayText = document.getElementById('displayText');
+        const sendButton = document.getElementById('sendButton');
+        const toggleButton = document.getElementById('toggleButton');
+        const toggleButtonBack = document.getElementById('toggleButtonBack');
+
+        // Function to show View 2
+        function showView2() {
+            displayText.textContent = inputText.value; // Set the display text to the input value
+            view1.style.display = 'none';
+            view2.style.display = 'block';
+        }
+
+        // Function to show View 1
+        function showView1() {
+            view1.style.display = 'block';
+            view2.style.display = 'none';
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', showView2);
+        toggleButton.addEventListener('click', showView2);
+        toggleButtonBack.addEventListener('click', showView1);
+    </script>
+</body>
+</html>

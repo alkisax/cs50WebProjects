@@ -1,0 +1,55 @@
+i am creating a def that gets a file as an input in markdown and renders it into html
+example file
+wiki/entries/HTML.md
+# HTML
+
+HTML is a markup language that can be used to define the structure of a web page. HTML elements include
+
+* headings
+* paragraphs
+* lists
+* links
+* and more!
+
+The most recent major version of HTML is HTML5.
+# My Document
+
+## Introduction
+
+This is an example of Markdown syntax.
+
+**Bold Text** and _Italic Text_ are often used for emphasis.
+
+Here is a [link to example.com](http://example.com).
+
+### Unordered List
+
+- Item 1
+- Item 2
+  - Subitem 1
+  - Subitem 2
+- Item 3
+
+### Ordered List
+
+1. First item
+2. Second item
+   1. Subitem 1
+   2. Subitem 2
+3. Third item
+
+
+
+Sure, here's a list of the issues you faced and asked for help with:
+
+NoReverseMatch Error: You encountered a NoReverseMatch error when trying to use the URL template tag {% url 'index' %} in your layout file. The issue was due to missing app_name in urls.py.
+
+URL and View Function Names: You had trouble understanding how to correctly reference URL patterns and view functions in Django, especially when using the {% url %} template tag.
+
+Search Functionality: You struggled with implementing a search function that correctly redirects to the entry page when an exact match is found.
+
+Using Search Query in URLs: You wanted to understand how to pass the search query through the URL when pressing Enter in a form without a submit button.
+
+Passing Data from Form to View: You needed guidance on how to process and utilize input data from a form submission in Django views.
+
+Redirecting on Search: You faced issues with ensuring that the search query leads to the correct entry page or provides feedback if no exact match is found.

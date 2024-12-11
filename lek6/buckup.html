@@ -1,0 +1,846 @@
+
+<!-- profile view Back up-->
+def profile(request, username):
+    profile = User.objects.filter(username=username).first()
+    all_posts = Posts.objects.filter(user=profile).order_by('-timestamp')
+    # 2
+    following = profile.following.all()  # Users this profile is following
+    following_count = following.count()
+    # εδώ έκανα profile.followers  και οχι Users.objects.followers.all() (ή κατι τετοιο) γιατι ποιο πάνω έχω καλέσει το συγγεκριμένο ατομο απο το Users και το αποθήκευσα ως profile
+    followers = profile.followers.all()
+    followers_count = profile.followers.count()
+
+    is_following = False
+    for follower in followers: # τους φολοουερσ τους ειχα μαζέψει λίγο πιο πάνω
+        if follower == request.user: # αρχικα έιχα προφαιλ. νομίζω πρέπει να σκέφτεσε το manytomany σαν ένα διπλό βέλος
+            is_following = True
+            break
+
+    paginator = Paginator(all_posts, 10)
+    page_number = request.GET.get('page') # αυτό πρέπει να μου το στείλει το html
+    page_obj = paginator.get_page(page_number) # Aυτό θα στείλω στο ΗΤΜΛ. Χρειαζετε εξίγηση
+
+
+    follow = request.POST.get("follow")
+    if follow:
+        profile_to_change_follow = User.objects.get(id=follow)
+        if profile_to_change_follow not in request.user.following.all():
+            request.user.following.add(profile_to_change_follow)
+            is_following = True
+        else:
+            request.user.following.remove(profile_to_change_follow)
+            is_following = False
+        return redirect('profile', username=username)
+
+    # re fetch
+    all_posts = Posts.objects.filter(user=profile).order_by('-timestamp')
+    following_count = profile.following.count()
+    followers_count = profile.followers.count()
+
+
+    # αυτο ειναι κοπι πειστ απο το newpost αλλαξα μόνο το που στέλνει η σελίδα + 'profile', username=username στο render
+    liked = request.POST.get("liked")
+    if liked:
+        post = Posts.objects.get(id=liked)
+        if request.user not in post.likes.all():
+            post.likes.add(request.user)
+        else:
+            post.likes.remove(request.user)
+        return redirect('profile', username=username)
+
+    # για το edit
+    if request.method == 'PUT':
+        data = json.loads(request.body) #contains the raw body of the incoming request
+        post_id = data.get('post_id')
+        content = data.get('content')
+        title = data.get('title')
+
+        post = Posts.objects.get(id=post_id)
+        post.title = title
+        post.content = content
+        post.save()
+
+        return JsonResponse({'message': 'Post updated successfully!'}, status=200)
+
+<!-- following view Backup -->
+def following(request):
+
+    profile = request.user
+    following = profile.following.all()
+    following_id_list = []
+    for user in following:
+        following_id_list.append(user.id)
+
+    all_posts = Posts.objects.filter(user__id__in=following_id_list).order_by('-timestamp') # by ddb
+
+    paginator = Paginator(all_posts, 10)
+    page_number = request.GET.get('page') # αυτό πρέπει να μου το στείλει το html
+    page_obj = paginator.get_page(page_number) # Aυτό θα στείλω στο ΗΤΜΛ. Χρειαζετε εξίγηση
+
+
+    liked = request.POST.get("liked")
+    if liked:
+        post = Posts.objects.get(id=liked)
+        if request.user not in post.likes.all():
+            post.likes.add(request.user)
+        else:
+            post.likes.remove(request.user)
+        return redirect('following')
+
+    delete_post_id = request.POST.get("delete_post_id")
+    if delete_post_id:
+        try:
+            post = Posts.objects.get(id=delete_post_id)
+            post.delete()
+            all_posts = Posts.objects.all().order_by('-timestamp')
+            return redirect('following')
+        except Exception as e:
+            print(f"Error: {e}")
+            all_posts = Posts.objects.all().order_by('-timestamp')
+            return redirect('following')
+
+    return render(request, "network/following.html", {
+        #"posts": all_posts,
+        "page_obj": page_obj,
+    })
+
+<!-- Following.html Backup-->
+
+{% extends "network/layout.html" %}
+
+{% block body %}
+
+{% load static %}
+
+<div><h1><strong>Following</strong></h1></div>
+<!-- Posts section -->
+<div class="posts-container">
+    <h3 style="color: green">Posts</h3>
+    {% if page_obj %}
+        {% for post in page_obj %}
+            <div class="post-box">
+                <strong>{{ post.title }}</strong> by <strong><a href="{% url 'profile' post.user.username %}">{{ post.user.username }}</a></strong>
+                <br>({{ post.timestamp }}):
+                <br>{{ post.content|linebreaks }}
+                <br>-----
+                <br>likes: {{ post.likes.count }}
+                <br>
+            </div>
+            <div style="text-align: left; margin-bottom: 15px; display: inline-block;">
+                {% if request.user.is_authenticated %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="liked" value="{{ post.id }}">
+                        <button type="submit" class="btn">like!</button>
+                    </form>
+                {% endif %}
+                {% if request.user == post.user %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete_post_id" value="{{ post.id }}">
+                        <button type="submit" class="btn">delete</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div>No posts available.</div>
+    {% endif %}
+
+</div>
+
+<!-- Pagination -->
+<nav>
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+            <li><a href="?page=1">First</a></li>
+            <li><a href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li><strong>{{ num }}</strong></li>
+            {% else %}
+                <li><a href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            <li><a href="?page={{ page_obj.paginator.num_pages }}">Last</a></li>
+        {% endif %}
+    </ul>
+ </nav>
+
+
+{% endblock %}
+
+
+<!--  Index.html Backup -->
+
+{% extends "network/layout.html" %}
+
+{% block body %}
+
+<!-- edit window -->
+<!--<div id="editcontainer" style="display: none;"></div>-->
+
+
+<div><h1><strong>All posts</strong></h1></div>
+<!-- Posts section -->
+<div class="posts-container">
+    <h3 style="color: green">Posts</h3>
+    {% if page_obj %}
+        {% for post in page_obj %}
+            <div class="post-box" id="post-box-{{ post.id }}"> <!-- added -->
+                <strong id="posttitle-{{ post.id }}">{{ post.title }}</strong> by <strong><a href="{% url 'profile' post.user.username %}">{{ post.user.username }}</a></strong>
+                <br>({{ post.timestamp }}):
+                <br><p id="postcontent-{{ post.id }}">{{ post.content|linebreaks }}</p> <!--   When you use  post.content|linebreaks , Django creates multiple <p> tags for each line break in the content. So, if a post has multiple paragraphs, they will all be inside their own <p> tags αυτο θα πρέπει να λυφθει υπόψην οταν κανουμε retrieve για το edit, αλλιώς παίρνει μονο την πρώτη παραγραφο-->
+                <br>-----
+                <br>likes: <span id="likes-count-{{ post.id }}">{{ post.likes.count }}</span>
+                <br>
+            </div>
+            <!-- Buttons -->
+            <div style="text-align: left; margin-bottom: 15px; display: flex; gap: 5px;">
+                {% if request.user.is_authenticated %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="liked" id="liked-{{ post.id }}" value="{{ post.id }}" data-post-id="{{ post.id }}">
+                        <button type="button" class="btn" id="liked-{{ post.id }}" data-post-id="{{ post.id }}">Like</button>
+                     </form>
+                {% endif %}
+                {% if request.user == post.user %}
+                    <button  class="btn" id="editbutton-{{ post.id }}" data-post-id="{{ post.id }}" data-section="editpost">edit</button> <!-- to id ειναι για js -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="delete_post_id" value="{{ post.id }}">
+                        <button type="submit" class="btn">delete</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div>No posts available.</div>
+    {% endif %}
+</div>
+
+<!-- edit form -->
+<div id="editpost" style="color: black;"> <!--editpost-->
+    <h1>Edit post</h1>
+
+    <form method="post" action="{% url 'index' %}" data-post-id="{{ post.id }}">
+        {% csrf_token %}
+        <label for="newtitle">Title</label>
+        <input type="text" id="newtitle" name="newtitle" placeholder="type title here" required autofocus>
+        <label for="newcontent">Post:</label>
+        <textarea id="newcontent" name="newcontent"
+        style="width: 70%; height: 200px; box-sizing: border-box; resize: vertical; overflow: auto; background-color: #f7f3d2;" placeholder="type your post here"required></textarea>
+        <br>
+        <button type="submit" id="submiteditbutton" class="submit-btn" data-post-id="{{ post.id }}">Submit Edit</button>
+    </form>
+</div>
+
+<!-- Pagination section -->
+<!--<style>
+    .pagination {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        gap: 10px; /* Adjust the spacing as needed */
+    }
+    .pagination li {
+        display: inline;
+    }
+</style>-->
+ <nav>
+    <ul class="pagination">
+        {% if page_obj.has_previous %}
+            <li><a href="?page=1">First</a></li>
+            <li><a href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li><strong>{{ num }}</strong></li>
+            {% else %}
+                <li><a href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}">Next</a></li>
+            <li><a href="?page={{ page_obj.paginator.num_pages }}">Last</a></li>
+        {% endif %}
+    </ul>
+ </nav>
+
+{% endblock %}
+
+
+
+<!-- index + handle_like view Backup
+def index(request):
+    if request.method in ['GET', 'PUT'] and request.GET.get('post_id'):
+            return handle_like(request)
+
+    all_posts = Posts.objects.all().order_by('-timestamp') # [start:end] #To τιμεσταμπ για να εμφανιζετε το νεορτερο πρώτο. To [start:end] για infinite scroll
+
+    paginator = Paginator(all_posts, 10)
+    page_number = request.GET.get('page') # αυτό πρέπει να μου το στείλει το html
+    page_obj = paginator.get_page(page_number) # Aυτό θα στείλω στο ΗΤΜΛ. Χρειαζετε εξίγηση
+
+    # για το edit
+    if request.method == 'PUT':
+        data = json.loads(request.body) #contains the raw body of the incoming request
+        post_id = data.get('post_id')
+        content = data.get('content')
+        title = data.get('title')
+
+        post = Posts.objects.get(id=post_id)
+        post.title = title
+        post.content = content
+        post.save()
+
+        return JsonResponse({'message': 'Post updated successfully!'}, status=200)
+
+
+    #liked = request.POST.get("liked")
+    #if liked:
+    #    post = Posts.objects.get(id=liked)
+    #    if request.user not in post.likes.all():
+    #        post.likes.add(request.user)
+    #    else:
+    #        post.likes.remove(request.user)
+    #    return redirect('index')
+
+
+    delete_post_id = request.POST.get("delete_post_id")
+    if delete_post_id:
+        try:
+            post = Posts.objects.get(id=delete_post_id)
+            post.delete()
+            all_posts = Posts.objects.all().order_by('-timestamp')
+            return redirect('index')
+        except Exception as e:
+            print(f"Error: {e}")
+            all_posts = Posts.objects.all().order_by('-timestamp')
+            return redirect('index')
+
+    return render(request, "network/index.html", {
+        #"posts": all_posts,
+        "page_obj": page_obj,
+    })
+
+def handle_like(request):
+    if request.method == 'GET':
+        post_id = request.GET.get('post_id')
+        try:
+            post = Posts.objects.get(id=post_id)
+            liked = post.likes.filter(id=request.user.id).exists()
+            return JsonResponse({
+                'liked': liked,
+                'likes': post.likes.count()
+                })
+        except Posts.DoesNotExist:
+            return JsonResponse({'error': 'Post not found.'}, status=404)
+
+    elif request.method == 'PUT':
+        data = json.loads(request.body)
+        post_id = data.get('post_id')
+        action = data.get('action') # Get the action (like/unlike)
+
+        try:
+            post = Posts.objects.get(id=post_id)
+            if action == 'like':
+                post.likes.add(request.user)
+                message = 'Post liked.'
+            elif action == 'unlike':
+                post.likes.remove(request.user)
+                message = 'Post unliked.'
+            else:
+                return JsonResponse({'error': 'Invalid action.'}, status=400)
+
+            # Return updated likes count and message
+            return JsonResponse({
+                'message': message,
+                'likes': post.likes.count()  # Updated like count
+            }, status=200)
+
+        except Posts.DoesNotExist:
+             return JsonResponse({'error': 'Post not found.'}, status=404)
+
+-->
+
+
+
+
+
+<!-- BUTTONS.JS Backup
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if the new post div exists before initializing its animation
+    const newPostDiv = document.getElementById('newpost');
+    if (newPostDiv) {
+        initNewPostAnimation();
+    }
+
+    // Check if the toggle button exists before initializing it
+    const toggleButton = document.getElementById('toggle-newpost');
+    if (toggleButton) {
+        initToggleButton();
+    }
+
+    initEditButton()
+
+    initLikeButton()
+
+});
+
+// το getcookie το καλω μέσα στο fetch. θα προτιμούσα να μην υπήρχε
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+/*
+id="liked-{{ post.id }}"value="{{ post.id }}"
+this is psuedocode
+1 create a const with the button
+2 fetch a request to see if the person already has like
+3 if the person does not have a like change the button to "like"
+4 if the person does have a like cheange the button to "unlike"
+5 add an .onclick to the button. if button is clicked
+6 dont submit
+7 fetch a request to see if the person already has like
+if the person does not have a like
+fetch/put an add a like in models throw views
+change the view to the button to "unlike"
+if the person does have a like
+fetch/put an add a like in models throw views
+change the view to the button to "unlike"
+*/
+
+function initLikeButton() {
+    const likeButtons = document.querySelectorAll('[id^="liked-"]');
+
+    likeButtons.forEach(button => {
+        const postId = button.getAttribute('data-post-id');
+        const likesCountSpan = document.getElementById(`likes-count-${postId}`);
+
+        // Initial fetch to check if the post is liked and update the button text accordingly
+        fetch(`/index/?post_id=${postId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            let isLiked = data.liked;
+
+            // Use if-else instead of ternary operator
+            if (isLiked) {
+                button.textContent = 'Unlike';
+            } else {
+                button.textContent = 'Like';
+            }
+
+            likesCountSpan.textContent = data.likes; // Set initial likes count
+        });
+
+        // Event listener for like/unlike button
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+
+            // Determine the action based on the current button text
+            let action;
+            if (button.textContent === 'Like') {
+                action = 'like';
+            } else {
+                action = 'unlike';
+            }
+
+            // Fetch request to update like/unlike status
+            fetch(`/index/?post_id=${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ post_id: postId, action: action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Post liked.' || data.message === 'Post unliked.') {
+                    // Update button text based on the action
+                    if (action === 'like') {
+                        button.textContent = 'Unlike';
+                    } else {
+                        button.textContent = 'Like';
+                    }
+
+                    // Update likes count immediately
+                    console.log("Likes count received from server:", data.likes);
+
+                    likesCountSpan.textContent = data.likes;
+                } else {
+                    console.error('Error:', data.error);
+                }
+            });
+        });
+    });
+}
+/* backup 2
+function initLikeButton() {
+    const likeButtons = document.querySelectorAll('[id^="liked-"]');
+
+    likeButtons.forEach(button => {
+        const postId = button.getAttribute('data-post-id');
+        const likesCountSpan = document.getElementById(`likes-count-${postId}`);
+
+        // Initial fetch to check if the post is liked and update the button text accordingly
+        fetch(`/index/?post_id=${postId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            let isLiked = data.liked;
+
+            // Use if-else instead of ternary operator
+            if (isLiked) {
+                button.textContent = 'Unlike';
+            } else {
+                button.textContent = 'Like';
+            }
+
+            likesCountSpan.textContent = data.likes; // Set initial likes count
+        });
+
+        // Event listener for like/unlike button
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+
+            // Determine the action based on the current button text
+            let action;
+            if (button.textContent === 'Like') {
+                action = 'like';
+            } else {
+                action = 'unlike';
+            }
+
+            // Fetch request to update like/unlike status
+            fetch(`/index/?post_id=${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ post_id: postId, action: action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Post liked.' || data.message === 'Post unliked.') {
+                    // Update button text based on the action
+                    if (action === 'like') {
+                        button.textContent = 'Unlike';
+                    } else {
+                        button.textContent = 'Like';
+                    }
+
+                    // Update likes count immediately
+                    likesCountSpan.textContent = data.likes;
+                } else {
+                    console.error('Error:', data.error);
+                }
+            });
+        });
+    });
+}
+
+*/
+
+
+
+/* back up
+function initLikeButton() {
+    console.log("Initializing like buttons");
+    const likeButtons = document.querySelectorAll('[id^="liked-"]');
+    console.log(likeButtons);
+    likeButtons.forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            console.log("Like button clicked");
+
+            const postId = button.getAttribute('data-post-id');
+
+            if (!postId) {
+                console.error('Post ID is null');
+                return; // Exit the function if postId is null
+            }
+
+            // First fetch to check if the user has liked the post
+            fetch(`/index/?post_id=${postId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                let isLiked = data.liked; //have to expect a boolean
+
+                if (isLiked) {
+                    button.textContent = 'Unlike';
+                } else {
+                    button.textContent = 'Like';
+                }
+
+                let action;
+                if (isLiked) {
+                    action = 'unlike';
+                } else {
+                     action = 'like';
+                }
+
+                // Second fetch to update the like status
+                fetch(`/index/?post_id=${postId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        action: action
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        if (action === 'like') {
+                            button.textContent = 'Unlike';
+                        } else {
+                            button.textContent = 'Like';
+                        }
+                    } else {
+                        console.error('Error liking post:', response.statusText);
+                    }
+                });
+            });
+        });
+    });
+}
+
+*/
+
+
+function initEditButton() {
+    const editButtons = document.querySelectorAll('[id^="editbutton-"]');
+    editButtons.forEach(function(button) {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+
+            const editPost = document.getElementById('editpost');
+            const postId = button.getAttribute('data-post-id');
+            const postBox = document.getElementById(`post-box-${postId}`);
+            const initialTitle = document.getElementById(`posttitle-${postId}`);
+            const parsedInitialContent = document.querySelectorAll(`#postcontent-${postId} ~ p`);
+            let contentText = '';
+            parsedInitialContent.forEach(function(p) {
+                contentText += p.innerText + '\n';
+            });
+            const titleText = initialTitle.innerText;
+
+            postBox.innerHTML = editPost.innerHTML;
+
+            document.querySelector('#newtitle').value = titleText;
+            document.querySelector('#newcontent').value = contentText;
+            document.querySelector('#newtitle').focus();
+
+            const editForm = postBox.querySelector('form');
+            editForm.setAttribute('data-post-id', postId);
+            document.querySelector('#newtitle').focus();
+
+            document.querySelector('#submiteditbutton').addEventListener('click', function(event) {
+                event.preventDefault();
+                const newtitle = document.querySelector('#newtitle').value;
+                const newcontent = document.querySelector('#newcontent').value;
+
+                fetch(`/index/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        title: newtitle,
+                        content: newcontent
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Post updated successfully!');
+                        location.reload();
+                    } else {
+                        console.error('Error updating post:', response.statusText);
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error);
+                });
+            });
+
+        });
+    });
+}
+
+function initToggleButton() {
+    // για να κάνω toggle με κουμπί το new post κουτι //
+    const toggleButton = document.getElementById('toggle-newpost');
+    const newPostDiv = document.getElementById('newpost');
+
+    toggleButton.onclick = function(){
+        if (newPostDiv.style.display === 'none' || newPostDiv.style.display === '') {
+            newPostDiv.style.display = 'block';
+            newPostDiv.style.animationPlayState = 'running'; //τελικά αναγκάστικα να τις μπλέξω τις δύο συναρτήσεις
+        } else {
+            newPostDiv.style.animationPlayState = 'paused'; //τελικά αναγκάστικα να τις μπλέξω τις δύο συναρτήσεις
+            newPostDiv.style.display = 'none';
+        }
+    };
+}
+
+
+// πότε να ενεργοποιήτε το animation του new post //
+//document.addEventListener('DOMContentLoaded', function() {
+function initNewPostAnimation() {
+    const newPostDiv = document.getElementById('newpost');
+    newPostDiv.style.animationPlayState = 'paused'; // Start with animation paused
+    newPostDiv.style.display = 'none'; // Ensure it's hidden initially
+}
+
+
+/* //εδω φτιάχνω τις συναρτησεις μου για infinite scroll με 5 ποστ την φορα
+
+let start = 0; // Starting index for posts
+const loadCount = 5;
+
+window.onscroll = () => {
+    // Check if the user has scrolled to the bottom of the page
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+        load(); //αν το βάλω να τρέχει αυτόματα κάθε φορά που φτανει στο τελος έχω infinite scroll
+    }
+};
+
+function load() {
+
+    const end = start + loadCount;
+
+    fetch(`/posts?start=${start}&end=${end}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.posts.length > 0) {
+                data.posts.forEach(add_post);
+                start += loadCount;
+        }
+    })
+}; */
+
+
+
+
+/*
+
+my psuedocode is
+get button in constant
+get post-box in constant
+get editpost in constant
+add .onclick to button
+then toggle the view of post-box
+retrieve post-box info
+populate editpost
+toggle the view of editpost
+
+ ok so now we have created a constant that catches all the buttons
+a constant tha cachest the container (the placeholder for the edit form
+a constant for for the edit form
+next we set an alarm for every button to see which one will be clicked and if it happens we prevent its normal behavior (submit)
+
+//next i want to take the innerHtml from my template aka editPost and give it to the editContainer
+
+
+            now the next steps
+            1. retrieve the title and the content of the post (that the button wa pressed) and save them in constants
+            2. populate the new form with them
+
+            lets go to 1.
+            lets keep in mind that in every post while looping we added an id like:
+            id="posttitle-{{ post.id }}"
+            id="postcontent-{{ post.id }}"
+            and this are shown in box named
+            post-box-{{ post.id }}
+            but first we need to retrieve the post id
+
+            εδω βαζω ένα απλο παραδειγμα του τι κάνει το .getAttribute:
+            <button id="myButton" data-info="123">Click me</button>
+            const button = document.getElementById('myButton');
+            const info = button.getAttribute('data-info');
+            console.log(info); // This will output: 123
+            απθηκευω εναλακτικές κρυφές πληροφορίες. Στην περιπτωση μου το id του Post
+            //debuging μου τύπωνε μόνο τον τιτλο και οχι το σωμα του ποστ. Επειεδη το linebreak μου φτιάχενει παραγράφους με πολλαπλά <p> πρεπει να προσέξω να μην πάρω μόνο το πρωτο. για αυτό η αλλαγή.
+            //const initialContent = document.getElementById(`postcontent-${postId}`);
+
+
+            // παιρνω και όλα τα child <p>
+            //debuging. επειδη λόγο του debuging το ευτιαξα αλλιώς παρπανω το σβήνω απο εδω
+            //const contentText = initialContent.innerText;
+
+            //step 2  populate the new form, we have to titleText and contentText. in html the αντιστοιχα ονοματα sto editpost είναι id="newtitle" kai id="newcontent"
+                // αν εβαζα απλως autofocus στο title δεν θα δουλευε γιατι η σελιδα δεν κανει ριφρεσ καθε φορα που πατιέτε το κουμπι
+            // Απο εδω και κάτω συνχονεύω το κουμπι submit edit γιατι δεν μου έσωζε το κείμενο που του έβαζα. Ο λόγος ήταν οτι επρεπε να ξαναγίνει Populated και να μπει το event listener γιατι εκανε ριφρεσ πριν κανει φετσ
+            // *** PART II ***
+           PSUEDOCODE
+                there is a button called submit edit
+                we will create a new js fuction that is runned when clicked
+                here is my initial psuedocode
+
+                1. add the button to an const:
+                <button type="submit" id="submiteditbutton" class="submit-btn" data-post-id="{{ post.id }}">Submit Edit</button>
+
+                2. add eventlistener on button for click
+                3. prevent from submiting event
+                4. get post id
+                5. retreave content and title and save them to const. id="newtitle" id="newcontent"
+                6. create a fetch put to send to jango
+                7. optimise jango for updating the models
+                8. update the parts to be refreshed without refreshing the page
+
+            // 2
+            // **Reattach the event listener to the newly populated submit button**
+                          // Get new title and content
+                //5. create a fetch put to send to jango προσοχη στο .value
+                      //6. create a fetch put to send to jango
+                // Send PUT request to update post
+*/
+
+
+
+            -->
+<p></p>

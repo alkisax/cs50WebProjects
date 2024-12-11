@@ -1,0 +1,28 @@
+
+<!--<!DOCTYPE html>
+<html lang="en">  Defines the language of the document as English
+<head>
+    <title>Tasks</title>   Sets the title of the webpage, which appears in the browser tab 
+</head>
+<body>    -->
+
+{% extends "tasks/layout.html" %}  <!-- Tells Django to use "tasks/layout.html" as the base template -->
+
+{% block body  %}  <!-- Starts a block named "body" where content can be inserted into the base template -->
+    <h1>Tasks</h1>  <!-- Displays a level-1 heading with the text "Tasks" -->
+
+    <ul>  <!-- Starts an unordered list to display tasks -->
+        {% for task in tasks %}  <!-- Loops over each task in the "tasks" variable passed from the view -->
+            <li>{{ task }}</li>  <!-- Displays each task inside a list item -->
+        {% empty %}  <!-- If the "tasks" list is empty, show the following content -->
+            <li>No tasks</li>  <!-- Displays a message indicating that there are no tasks -->
+        {% endfor %}  <!-- Ends the loop -->
+    </ul>  <!-- Ends the unordered list -->
+
+    <!--<a href="/tasks/add">Add neew task</a>-->  <!-- Old link to add a new task, commented out -->
+
+    <a href="{% url 'tasks:add' %}">Add neew task</a>  <!-- Creates a link to the "tasks:add" view using Django's URL template tag -->
+{% endblock %}  <!-- Ends the "body" block -->
+
+<!--</body>
+</html> -->
